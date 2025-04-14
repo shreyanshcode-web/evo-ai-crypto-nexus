@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
-import { LayoutDashboard, Wallet, ArrowRightLeft, Settings as SettingsIcon, CircleHelp, Home } from "lucide-react";
+import { Wallet, ArrowRightLeft, Settings as SettingsIcon, CircleHelp, Home } from "lucide-react";
 
 import Portfolio from "./dashboard/Portfolio";
 import Transactions from "./dashboard/Transactions";
