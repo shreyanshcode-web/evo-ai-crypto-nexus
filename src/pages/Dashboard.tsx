@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
-import { LayoutDashboard, Wallet, ArrowRightLeft, Settings as SettingsIcon, CircleHelp } from "lucide-react";
+import { LayoutDashboard, Wallet, ArrowRightLeft, Settings as SettingsIcon, CircleHelp, Home } from "lucide-react";
 
 import Portfolio from "./dashboard/Portfolio";
 import Transactions from "./dashboard/Transactions";
@@ -12,6 +12,11 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
   const navItems = [
+    {
+      name: "Home",
+      path: "/",
+      icon: <Home className="h-5 w-5" />,
+    },
     {
       name: "Portfolio",
       path: "/dashboard",
