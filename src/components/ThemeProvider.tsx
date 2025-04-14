@@ -2,24 +2,31 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 
-const ThemeProviderContext = createContext<{
-  theme: string;
-  setTheme: (theme: string) => void;
-}>({
-  theme: "light",
-  setTheme: () => null,
-});
+type Theme = "light" | "dark" | "high-contrast" | "system";
+
+type ThemeProviderProps = {
+  children: React.ReactNode;
+  defaultTheme?: Theme;
+};
+
+type ThemeProviderState = {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+};
+
+const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
+  undefined
+);
 
 export function ThemeProvider({
   children,
+  defaultTheme = "system",
   ...props
-}: {
-  children: React.ReactNode;
-}) {
+}: ThemeProviderProps) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="system"
+      defaultTheme={defaultTheme}
       enableSystem
       {...props}
     >
@@ -29,19 +36,30 @@ export function ThemeProvider({
 }
 
 function ThemeProviderContent({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<string>("light");
+  const [theme, setTheme] = useState<Theme>("system");
   const [mounted, setMounted] = useState(false);
 
+  // Get the theme from next-themes and update our local state
   useEffect(() => {
+    const themeFromStorage = localStorage.getItem("theme") as Theme | null;
+    if (themeFromStorage) {
+      setTheme(themeFromStorage);
+    }
     setMounted(true);
   }, []);
+
+  // Update local storage when theme changes
+  const updateTheme = (newTheme: Theme) => {
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+  };
 
   if (!mounted) {
     return <>{children}</>;
   }
 
   return (
-    <ThemeProviderContext.Provider value={{ theme, setTheme }}>
+    <ThemeProviderContext.Provider value={{ theme, setTheme: updateTheme }}>
       {children}
     </ThemeProviderContext.Provider>
   );
