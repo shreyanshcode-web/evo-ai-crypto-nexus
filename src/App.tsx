@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import SignupNow from "./pages/SignupNow";
 import Dashboard from "./pages/Dashboard";
+import Cryptocurrencies from "./pages/Markets/Cryptocurrencies";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/signup" element={<Layout><Signup /></Layout>} />
             <Route path="/signup-now" element={<Layout><SignupNow /></Layout>} />
             <Route path="/dashboard/*" element={<Layout><Dashboard /></Layout>} />
+            <Route path="/markets/cryptocurrencies" element={<Layout><Cryptocurrencies /></Layout>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>

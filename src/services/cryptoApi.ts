@@ -1,4 +1,3 @@
-
 import axios from "axios";
 
 interface CryptoData {
@@ -30,9 +29,8 @@ interface CoinMarketCapResponse {
   data: CryptoData[];
 }
 
-// This is a mock implementation for development
-// In production, you should make API calls to CoinMarketCap with your API key
-const API_KEY = "b54bcf4d-1bca-4e8e-9a24-22ff2c3d462c";
+// API Key for CoinMarketCap
+const API_KEY = "21b1412d-3ca3-4a54-b4d9-e8a4f62d7969";
 const BASE_URL = "https://sandbox-api.coinmarketcap.com";
 
 // Sample data for development/testing
