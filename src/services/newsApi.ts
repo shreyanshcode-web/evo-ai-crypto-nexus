@@ -28,7 +28,7 @@ const BASE_URL = "https://newsdata.io/api/1";
 
 // Function to fetch crypto news
 export const fetchCryptoNews = async (
-  page: number = 1
+  page: string | number = 1
 ): Promise<NewsArticle[]> => {
   try {
     const response = await axios.get<NewsApiResponse>(
@@ -39,10 +39,17 @@ export const fetchCryptoNews = async (
           q: "cryptocurrency OR bitcoin OR blockchain OR ethereum",
           language: "en",
           category: "business,technology",
-          page: page,
+          page: typeof page === 'string' ? page : String(page),
         },
       }
     );
+    
+    console.log("API Response:", response.data);
+    
+    if (response.data.status === "error") {
+      console.error("API Error:", response.data);
+      return sampleNewsData;
+    }
     
     return response.data.results || [];
   } catch (error) {

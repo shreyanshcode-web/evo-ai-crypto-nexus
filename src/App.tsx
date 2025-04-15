@@ -15,7 +15,14 @@ import Dashboard from "./pages/Dashboard";
 import Cryptocurrencies from "./pages/Markets/Cryptocurrencies";
 import MarketInsights from "./pages/Markets/MarketInsights";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

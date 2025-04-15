@@ -8,19 +8,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const MarketInsights = () => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState<string | number>(1);
   
-  const { data: news, isLoading, error, refetch } = useQuery({
+  const { data: news, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["crypto-news", page],
     queryFn: () => fetchCryptoNews(page),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  const handleRefresh = () => {
+    refetch();
+    toast({
+      title: "Refreshing news",
+      description: "Getting the latest cryptocurrency updates"
+    });
+  };
+
   const filteredNews = news?.filter((article) => 
-    article.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    article.description.toLowerCase().includes(searchTerm.toLowerCase())
+    article.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    article.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const formatDate = (dateString: string) => {
@@ -42,12 +61,13 @@ const MarketInsights = () => {
           </p>
         </div>
         <Button 
-          onClick={() => refetch()} 
+          onClick={handleRefresh} 
           variant="outline" 
           className="mt-4 md:mt-0"
+          disabled={isFetching}
         >
-          <RefreshCcw size={16} className="mr-2" />
-          Refresh
+          <RefreshCcw size={16} className={`mr-2 ${isFetching ? "animate-spin" : ""}`} />
+          {isFetching ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
 
@@ -88,7 +108,7 @@ const MarketInsights = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => refetch()} variant="outline">
+            <Button onClick={handleRefresh} variant="outline">
               Try Again
             </Button>
           </CardContent>
@@ -104,6 +124,10 @@ const MarketInsights = () => {
                       src={article.image_url}
                       alt={article.title}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Replace broken image with a placeholder
+                        (e.target as HTMLImageElement).src = '/placeholder.svg';
+                      }}
                     />
                   </div>
                 )}
@@ -160,22 +184,39 @@ const MarketInsights = () => {
       )}
 
       {!isLoading && filteredNews && filteredNews.length > 0 && (
-        <div className="flex justify-center mt-8">
-          <Button
-            variant="outline"
-            onClick={() => setPage(page > 1 ? page - 1 : 1)}
-            disabled={page === 1}
-            className="mr-2"
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setPage(page + 1)}
-            disabled={!news || news.length === 0}
-          >
-            Next
-          </Button>
+        <div className="mt-8">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => {
+                    if (typeof page === 'number' && page > 1) {
+                      setPage(page - 1);
+                    }
+                  }}
+                  className={`${typeof page === 'number' && page > 1 ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationLink isActive>
+                  {typeof page === 'string' ? 'Next Page' : page}
+                </PaginationLink>
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => {
+                    if (typeof page === 'string') {
+                      // If page is a string (nextPage token), we need to fetch next page
+                      setPage(1);
+                    } else {
+                      setPage(page + 1);
+                    }
+                  }}
+                  className="cursor-pointer"
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
     </div>
