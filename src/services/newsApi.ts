@@ -29,34 +29,53 @@ const BASE_URL = "https://newsdata.io/api/1";
 // Function to fetch crypto news
 export const fetchCryptoNews = async (
   page: string | number = 1
-): Promise<NewsArticle[]> => {
+): Promise<{ articles: NewsArticle[]; nextPage: string | null; usingSampleData: boolean }> => {
   try {
+    // Configure the API request parameters
+    const params: Record<string, string> = {
+      apikey: API_KEY,
+      q: "cryptocurrency OR bitcoin OR blockchain OR ethereum",
+      language: "en",
+      category: "business,technology"
+    };
+    
+    // If page is a string, it's a nextPage token from the API
+    if (typeof page === 'string' && page !== '1') {
+      params.page = page;
+    }
+    
+    console.log("Fetching news with params:", params);
+    
     const response = await axios.get<NewsApiResponse>(
       `${BASE_URL}/news`,
-      {
-        params: {
-          apikey: API_KEY,
-          q: "cryptocurrency OR bitcoin OR blockchain OR ethereum",
-          language: "en",
-          category: "business,technology",
-          page: typeof page === 'string' ? page : String(page),
-        },
-      }
+      { params }
     );
     
-    console.log("API Response:", response.data);
+    console.log("API Response status:", response.data.status);
     
     if (response.data.status === "error") {
       console.error("API Error:", response.data);
-      return sampleNewsData;
+      return { 
+        articles: sampleNewsData, 
+        nextPage: null, 
+        usingSampleData: true 
+      };
     }
     
-    return response.data.results || [];
+    return { 
+      articles: response.data.results || [], 
+      nextPage: response.data.nextPage, 
+      usingSampleData: false 
+    };
   } catch (error) {
     console.error("Error fetching cryptocurrency news:", error);
     
     // Return sample news data for development/testing
-    return sampleNewsData;
+    return { 
+      articles: sampleNewsData, 
+      nextPage: null, 
+      usingSampleData: true 
+    };
   }
 };
 

@@ -1,12 +1,13 @@
 
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Newspaper, Clock, ExternalLink, Search, RefreshCcw } from "lucide-react";
+import { Newspaper, Clock, ExternalLink, Search, RefreshCcw, AlertTriangle } from "lucide-react";
 import { fetchCryptoNews } from "@/services/newsApi";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -22,10 +23,15 @@ const MarketInsights = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState<string | number>(1);
+  const [usingSampleData, setUsingSampleData] = useState(false);
   
-  const { data: news, isLoading, error, refetch, isFetching } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["crypto-news", page],
-    queryFn: () => fetchCryptoNews(page),
+    queryFn: async () => {
+      const result = await fetchCryptoNews(page);
+      setUsingSampleData(result.usingSampleData);
+      return result;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -37,7 +43,7 @@ const MarketInsights = () => {
     });
   };
 
-  const filteredNews = news?.filter((article) => 
+  const filteredNews = data?.articles?.filter((article) => 
     article.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     article.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -70,6 +76,16 @@ const MarketInsights = () => {
           {isFetching ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
+
+      {usingSampleData && (
+        <Alert className="mb-6 bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900">
+          <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
+          <AlertTitle>Using sample data</AlertTitle>
+          <AlertDescription>
+            We're currently displaying sample data because the API is unavailable or reached its quota.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="relative mb-8">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
@@ -183,7 +199,7 @@ const MarketInsights = () => {
         </Card>
       )}
 
-      {!isLoading && filteredNews && filteredNews.length > 0 && (
+      {!isLoading && data?.articles && data.articles.length > 0 && (
         <div className="mt-8">
           <Pagination>
             <PaginationContent>
@@ -199,20 +215,19 @@ const MarketInsights = () => {
               </PaginationItem>
               <PaginationItem>
                 <PaginationLink isActive>
-                  {typeof page === 'string' ? 'Next Page' : page}
+                  {typeof page === 'number' ? page : 'Next page'}
                 </PaginationLink>
               </PaginationItem>
               <PaginationItem>
                 <PaginationNext
                   onClick={() => {
-                    if (typeof page === 'string') {
-                      // If page is a string (nextPage token), we need to fetch next page
-                      setPage(1);
-                    } else {
+                    if (data.nextPage) {
+                      setPage(data.nextPage);
+                    } else if (typeof page === 'number') {
                       setPage(page + 1);
                     }
                   }}
-                  className="cursor-pointer"
+                  className={`${data?.nextPage ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                 />
               </PaginationItem>
             </PaginationContent>
