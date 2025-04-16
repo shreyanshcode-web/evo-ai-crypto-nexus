@@ -15,6 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import Cryptocurrencies from "./pages/Markets/Cryptocurrencies";
 import MarketInsights from "./pages/Markets/MarketInsights";
 import AiAnalysis from "./pages/Markets/AiAnalysis";
+import AiAssistant from "./pages/Markets/AiAssistant";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/markets/cryptocurrencies" element={<Layout><Cryptocurrencies /></Layout>} />
             <Route path="/markets/insights" element={<Layout><MarketInsights /></Layout>} />
             <Route path="/markets/ai-analysis" element={<Layout><AiAnalysis /></Layout>} />
+            <Route path="/markets/ai-assistant" element={<Layout><AiAssistant /></Layout>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>
