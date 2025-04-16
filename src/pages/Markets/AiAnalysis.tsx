@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from "react";
-import { Send } from "lucide-react";
+import { Send, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +40,69 @@ const AiAnalysis = () => {
   const [recommendations, setRecommendations] = useState<CryptoRecommendation[]>([]);
   const [topCryptos, setTopCryptos] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  // Initialize speech recognition on component mount
+  useEffect(() => {
+    // Check if browser supports speech recognition
+    const SpeechRecognition = 
+      (window as any).SpeechRecognition || 
+      (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'en-US';
+
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error', event.error);
+        toast({
+          title: "Speech Recognition Error",
+          description: event.error === 'no-speech' 
+            ? "No speech was detected. Please try again." 
+            : "An error occurred during speech recognition.",
+          variant: "destructive"
+        });
+        setIsListening(false);
+      };
+    }
+  }, []);
+
+  const toggleSpeechRecognition = () => {
+    if (!recognitionRef.current) {
+      toast({
+        title: "Not Supported",
+        description: "Speech recognition is not supported in this browser.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (error) {
+        console.error('Speech recognition start error', error);
+        toast({
+          title: "Speech Recognition Error",
+          description: "Could not start speech recognition.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
   
   // Fetch top cryptos on component mount
   useEffect(() => {
@@ -233,6 +295,13 @@ const AiAnalysis = () => {
                     disabled={isLoading}
                     className="flex-1"
                   />
+                  <Button 
+                    onClick={toggleSpeechRecognition} 
+                    variant={isListening ? "destructive" : "outline"}
+                    className={`${isListening ? 'bg-red-500 text-white' : ''}`}
+                  >
+                    {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </Button>
                   <Button onClick={handleSendMessage} disabled={isLoading}>
                     <Send className="h-4 w-4" />
                   </Button>
