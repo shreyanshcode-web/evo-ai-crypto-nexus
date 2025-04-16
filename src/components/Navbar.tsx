@@ -53,12 +53,24 @@ export function Navbar() {
                     Market Insights
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link to="/markets/ai-analysis" className="flex items-center w-full">
+                    <Brain size={16} className="mr-2" />
+                    AI Analysis
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link to="/markets/ai-assistant" className="flex items-center w-full">
+                    <MessageSquareText size={16} className="mr-2" />
+                    AI Assistant
+                  </Link>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Link to="/ai-analysis" className="text-foreground hover:text-primary transition-colors">
+            <Link to="/markets/ai-analysis" className="text-foreground hover:text-primary transition-colors">
               AI Analysis
             </Link>
-            <Link to="/chatbot" className="text-foreground hover:text-primary transition-colors flex items-center">
+            <Link to="/markets/ai-assistant" className="text-foreground hover:text-primary transition-colors flex items-center">
               <MessageSquareText size={18} className="mr-1" />
               AI Assistant
             </Link>
@@ -129,17 +141,37 @@ export function Navbar() {
                     Market Insights
                   </div>
                 </Link>
+                <Link
+                  to="/markets/ai-analysis"
+                  className="block px-4 py-2 text-foreground hover:bg-secondary rounded-md transition-colors"
+                  onClick={toggleMenu}
+                >
+                  <div className="flex items-center">
+                    <Brain size={16} className="mr-2" />
+                    AI Analysis
+                  </div>
+                </Link>
+                <Link
+                  to="/markets/ai-assistant"
+                  className="block px-4 py-2 text-foreground hover:bg-secondary rounded-md transition-colors"
+                  onClick={toggleMenu}
+                >
+                  <div className="flex items-center">
+                    <MessageSquareText size={16} className="mr-2" />
+                    AI Assistant
+                  </div>
+                </Link>
               </div>
             </div>
             <Link
-              to="/ai-analysis"
+              to="/markets/ai-analysis"
               className="block px-4 py-2 text-foreground hover:bg-secondary rounded-md transition-colors"
               onClick={toggleMenu}
             >
               AI Analysis
             </Link>
             <Link
-              to="/chatbot"
+              to="/markets/ai-assistant"
               className="block px-4 py-2 text-foreground hover:bg-secondary rounded-md transition-colors"
               onClick={toggleMenu}
             >
