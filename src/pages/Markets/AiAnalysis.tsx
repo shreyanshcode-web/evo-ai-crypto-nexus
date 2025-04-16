@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Send, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,21 @@ const AiAnalysis = () => {
 
   // Initialize speech recognition on component mount
   useEffect(() => {
+    initializeSpeechRecognition();
+    
+    // Cleanup function to stop recognition when component unmounts
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          console.error('Error stopping speech recognition:', error);
+        }
+      }
+    };
+  }, []);
+  
+  const initializeSpeechRecognition = () => {
     // Check if browser supports speech recognition
     const SpeechRecognition = 
       (window as any).SpeechRecognition || 
@@ -58,12 +74,18 @@ const AiAnalysis = () => {
 
       recognitionRef.current.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
+        console.log('Speech recognized:', transcript);
         setInput(transcript);
         setIsListening(false);
       };
 
+      recognitionRef.current.onend = () => {
+        console.log('Speech recognition ended');
+        setIsListening(false);
+      };
+
       recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error', event.error);
+        console.error('Speech recognition error', event);
         toast({
           title: "Speech Recognition Error",
           description: event.error === 'no-speech' 
@@ -74,7 +96,7 @@ const AiAnalysis = () => {
         setIsListening(false);
       };
     }
-  }, []);
+  };
 
   const toggleSpeechRecognition = () => {
     if (!recognitionRef.current) {
@@ -87,11 +109,18 @@ const AiAnalysis = () => {
     }
 
     if (isListening) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+      }
       setIsListening(false);
     } else {
       try {
+        // Re-initialize recognition object to avoid "already started" errors
+        initializeSpeechRecognition();
         recognitionRef.current.start();
+        console.log('Speech recognition started');
         setIsListening(true);
       } catch (error) {
         console.error('Speech recognition start error', error);
@@ -100,6 +129,7 @@ const AiAnalysis = () => {
           description: "Could not start speech recognition.",
           variant: "destructive"
         });
+        setIsListening(false);
       }
     }
   };
@@ -299,6 +329,8 @@ const AiAnalysis = () => {
                     onClick={toggleSpeechRecognition} 
                     variant={isListening ? "destructive" : "outline"}
                     className={`${isListening ? 'bg-red-500 text-white' : ''}`}
+                    disabled={isLoading} 
+                    aria-label={isListening ? "Stop listening" : "Start voice input"}
                   >
                     {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   </Button>
