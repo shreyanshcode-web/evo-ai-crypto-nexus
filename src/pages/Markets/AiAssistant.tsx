@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, AlertCircle, RefreshCw, HelpCircle } from "lucide-react";
+import { Send, Bot, AlertCircle, RefreshCw, HelpCircle, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -38,7 +38,9 @@ const AiAssistant = () => {
   
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
   
   // Topics that the AI assistant can help with
   const topics: Topic[] = [
@@ -82,6 +84,97 @@ const AiAssistant = () => {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+  
+  // Initialize speech recognition on component mount
+  useEffect(() => {
+    initializeSpeechRecognition();
+    
+    // Cleanup function to stop recognition when component unmounts
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          console.error('Error stopping speech recognition:', error);
+        }
+      }
+    };
+  }, []);
+  
+  const initializeSpeechRecognition = () => {
+    // Check if browser supports speech recognition
+    const SpeechRecognition = 
+      (window as any).SpeechRecognition || 
+      (window as any).webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.lang = 'en-US';
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.maxAlternatives = 1;
+
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        console.log('Speech recognized:', transcript);
+        setInput(transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        console.log('Speech recognition ended');
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error', event);
+        toast({
+          title: "Speech Recognition Error",
+          description: event.error === 'no-speech' 
+            ? "No speech detected. Please try again." 
+            : "Error recognizing speech. Please try again.",
+          variant: "destructive"
+        });
+        setIsListening(false);
+      };
+    }
+  };
+
+  const toggleSpeechRecognition = () => {
+    if (!recognitionRef.current) {
+      toast({
+        title: "Not Supported",
+        description: "Speech recognition is not supported in this browser.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isListening) {
+      try {
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+      }
+      setIsListening(false);
+    } else {
+      try {
+        // Re-initialize recognition object to avoid "already started" errors
+        initializeSpeechRecognition();
+        recognitionRef.current.start();
+        console.log('Speech recognition started');
+        setIsListening(true);
+      } catch (error) {
+        console.error('Speech recognition start error', error);
+        toast({
+          title: "Error",
+          description: "Could not start speech recognition.",
+          variant: "destructive"
+        });
+        setIsListening(false);
+      }
+    }
+  };
   
   const handleSendMessage = async () => {
     if (!input.trim()) return;
@@ -218,6 +311,15 @@ const AiAssistant = () => {
                     disabled={isLoading}
                     className="flex-1"
                   />
+                  <Button 
+                    onClick={toggleSpeechRecognition} 
+                    variant={isListening ? "destructive" : "outline"}
+                    className={`${isListening ? 'bg-red-500 text-white' : ''}`}
+                    disabled={isLoading} 
+                    aria-label={isListening ? "Stop listening" : "Start voice input"}
+                  >
+                    {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </Button>
                   <Button 
                     onClick={handleSendMessage} 
                     disabled={isLoading || !input.trim()}
