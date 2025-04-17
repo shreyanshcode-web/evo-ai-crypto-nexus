@@ -147,7 +147,7 @@ export const getAIAnalysis = async (cryptoSymbol: string): Promise<AIAnalysisRes
     const response = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
-        model: "llama-3-8b-8192",
+        model: "llama-3.3-70b-versatile",
         messages: [
           {
             role: "system",
@@ -218,7 +218,7 @@ export const getChatbotResponse = async (message: string): Promise<string> => {
     const response = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
-        model: "llama-3-8b-8192",
+        model: "llama-3.3-70b-versatile",
         messages: [
           {
             role: "system",
