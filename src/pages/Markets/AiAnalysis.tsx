@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Mic, MicOff } from "lucide-react";
+import { Send, Mic, MicOff, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +10,7 @@ import { fetchTopCryptos } from "@/services/cryptoApi";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Message {
   id: string;
@@ -44,11 +44,9 @@ const AiAnalysis = () => {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
-  // Initialize speech recognition on component mount
   useEffect(() => {
     initializeSpeechRecognition();
     
-    // Cleanup function to stop recognition when component unmounts
     return () => {
       if (recognitionRef.current) {
         try {
@@ -61,7 +59,6 @@ const AiAnalysis = () => {
   }, []);
   
   const initializeSpeechRecognition = () => {
-    // Check if browser supports speech recognition
     const SpeechRecognition = 
       (window as any).SpeechRecognition || 
       (window as any).webkitSpeechRecognition;
@@ -117,7 +114,6 @@ const AiAnalysis = () => {
       setIsListening(false);
     } else {
       try {
-        // Re-initialize recognition object to avoid "already started" errors
         initializeSpeechRecognition();
         recognitionRef.current.start();
         console.log('Speech recognition started');
@@ -134,22 +130,29 @@ const AiAnalysis = () => {
     }
   };
   
-  // Fetch top cryptos on component mount
   useEffect(() => {
     const loadTopCryptos = async () => {
       try {
         const cryptos = await fetchTopCryptos(5);
         setTopCryptos(cryptos);
         
-        // Generate initial recommendations
         const initialRecs = await Promise.all(
           cryptos.slice(0, 3).map(async (crypto) => {
-            const analysis = await getAIAnalysis(crypto.symbol);
-            return {
-              symbol: crypto.symbol,
-              name: crypto.name,
-              analysis: analysis.analysis
-            };
+            try {
+              const analysis = await getAIAnalysis(crypto.symbol);
+              return {
+                symbol: crypto.symbol,
+                name: crypto.name,
+                analysis: analysis.analysis
+              };
+            } catch (error) {
+              console.error(`Error generating analysis for ${crypto.symbol}:`, error);
+              return {
+                symbol: crypto.symbol,
+                name: crypto.name,
+                analysis: "Analysis unavailable at the moment."
+              };
+            }
           })
         );
         
@@ -167,7 +170,6 @@ const AiAnalysis = () => {
     loadTopCryptos();
   }, []);
   
-  // Scroll to bottom of messages
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -189,6 +191,11 @@ const AiAnalysis = () => {
     setIsLoading(true);
     
     try {
+      toast({
+        title: "Processing",
+        description: "Analyzing your request...",
+      });
+      
       const response = await getChatbotResponse(input);
       
       const botMessage: Message = {
@@ -200,29 +207,36 @@ const AiAnalysis = () => {
       
       setMessages((prev) => [...prev, botMessage]);
       
-      // If the message contains a crypto symbol, update its analysis
       const cryptoMatches = input.match(/\b(BTC|ETH|BNB|XRP|DOGE|SOL|ADA)\b/gi);
       if (cryptoMatches && cryptoMatches.length > 0) {
         const symbol = cryptoMatches[0].toUpperCase();
         const crypto = topCryptos.find(c => c.symbol === symbol);
         
         if (crypto) {
-          const analysis = await getAIAnalysis(symbol);
-          const newRec = {
-            symbol: symbol,
-            name: crypto.name,
-            analysis: analysis.analysis,
-          };
-          
-          setRecommendations((prev) => {
-            // Replace if exists, otherwise add
-            const exists = prev.some(r => r.symbol === symbol);
-            if (exists) {
-              return prev.map(r => r.symbol === symbol ? newRec : r);
-            } else {
-              return [...prev.slice(-2), newRec]; // Keep last 3 recommendations
-            }
-          });
+          try {
+            const analysis = await getAIAnalysis(symbol);
+            const newRec = {
+              symbol: symbol,
+              name: crypto.name,
+              analysis: analysis.analysis,
+            };
+            
+            setRecommendations((prev) => {
+              const exists = prev.some(r => r.symbol === symbol);
+              if (exists) {
+                return prev.map(r => r.symbol === symbol ? newRec : r);
+              } else {
+                return [...prev.slice(-2), newRec];
+              }
+            });
+          } catch (analysisError) {
+            console.error(`Error getting analysis for ${symbol}:`, analysisError);
+            toast({
+              title: "Analysis Error",
+              description: `Could not generate analysis for ${symbol}`,
+              variant: "destructive",
+            });
+          }
         }
       }
     } catch (error) {
@@ -236,6 +250,12 @@ const AiAnalysis = () => {
       };
       
       setMessages((prev) => [...prev, errorMessage]);
+      
+      toast({
+        title: "Error",
+        description: "Failed to get AI response",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -248,7 +268,6 @@ const AiAnalysis = () => {
     }
   };
 
-  // Quick message suggestions
   const suggestions = [
     "What do you think about Bitcoin?",
     "Should I invest in Ethereum?",
@@ -259,7 +278,6 @@ const AiAnalysis = () => {
 
   const sendQuickSuggestion = (text: string) => {
     setInput(text);
-    // Small timeout to allow the input to update visually before sending
     setTimeout(() => {
       handleSendMessage();
     }, 100);
@@ -270,7 +288,6 @@ const AiAnalysis = () => {
       <h1 className="text-3xl font-bold mb-6">AI Crypto Analyst</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main chat section */}
         <Card className="lg:col-span-2">
           <Tabs defaultValue="chat">
             <CardHeader className="pb-0">
@@ -358,7 +375,6 @@ const AiAnalysis = () => {
           </Tabs>
         </Card>
         
-        {/* Analysis sidebar */}
         <Card>
           <CardHeader>
             <CardTitle>Latest Analyses</CardTitle>

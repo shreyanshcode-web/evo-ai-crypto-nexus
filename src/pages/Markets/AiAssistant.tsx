@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, AlertCircle, RefreshCw, HelpCircle, Mic, MicOff } from "lucide-react";
+import { Send, Bot, AlertCircle, RefreshCw, HelpCircle, Mic, MicOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -42,7 +41,6 @@ const AiAssistant = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   
-  // Topics that the AI assistant can help with
   const topics: Topic[] = [
     {
       title: "Portfolio Advice",
@@ -78,18 +76,15 @@ const AiAssistant = () => {
     }
   ];
   
-  // Scroll to bottom of messages
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
   
-  // Initialize speech recognition on component mount
   useEffect(() => {
     initializeSpeechRecognition();
     
-    // Cleanup function to stop recognition when component unmounts
     return () => {
       if (recognitionRef.current) {
         try {
@@ -102,7 +97,6 @@ const AiAssistant = () => {
   }, []);
   
   const initializeSpeechRecognition = () => {
-    // Check if browser supports speech recognition
     const SpeechRecognition = 
       (window as any).SpeechRecognition || 
       (window as any).webkitSpeechRecognition;
@@ -159,7 +153,6 @@ const AiAssistant = () => {
       setIsListening(false);
     } else {
       try {
-        // Re-initialize recognition object to avoid "already started" errors
         initializeSpeechRecognition();
         recognitionRef.current.start();
         console.log('Speech recognition started');
@@ -191,6 +184,11 @@ const AiAssistant = () => {
     setIsLoading(true);
     
     try {
+      toast({
+        title: "Processing",
+        description: "Getting AI response...",
+      });
+      
       const response = await getChatbotResponse(input);
       
       const botMessage: Message = {
@@ -232,7 +230,6 @@ const AiAssistant = () => {
 
   const sendQuickMessage = (text: string) => {
     setInput(text);
-    // Small timeout to allow the input to update visually before sending
     setTimeout(() => {
       handleSendMessage();
     }, 100);
@@ -243,7 +240,6 @@ const AiAssistant = () => {
       <h1 className="text-3xl font-bold mb-6">AI Investment Assistant</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main chat section */}
         <Card className="lg:col-span-2">
           <Tabs defaultValue="chat">
             <CardHeader className="pb-2">
@@ -387,7 +383,6 @@ const AiAssistant = () => {
           </Tabs>
         </Card>
         
-        {/* Sidebar */}
         <Card>
           <CardHeader>
             <CardTitle>Investment Insights</CardTitle>
@@ -396,7 +391,6 @@ const AiAssistant = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Market Sentiment */}
             <div>
               <h3 className="text-sm font-medium mb-3">Market Sentiment</h3>
               <div className="flex items-center justify-between">
@@ -410,7 +404,6 @@ const AiAssistant = () => {
             
             <Separator />
             
-            {/* Top Opportunities */}
             <div>
               <h3 className="text-sm font-medium mb-3">Top Opportunities</h3>
               <div className="space-y-3">
@@ -447,7 +440,6 @@ const AiAssistant = () => {
             
             <Separator />
             
-            {/* Market Events */}
             <div>
               <h3 className="text-sm font-medium mb-3">Upcoming Market Events</h3>
               <div className="space-y-3">

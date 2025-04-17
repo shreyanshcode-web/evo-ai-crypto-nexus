@@ -1,9 +1,11 @@
 
 import axios from "axios";
 
-// This is a mock implementation for development
-// In production, you would integrate with the Groq API using the provided key
+// Store API key - In a production environment, this should be stored in environment variables
 const GROQ_API_KEY = "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";
+
+// Flag to toggle between mock and production API calls
+const USE_MOCK_DATA = false; // Set to false to use real API
 
 interface AIAnalysisResponse {
   analysis: string;
@@ -11,6 +13,65 @@ interface AIAnalysisResponse {
   confidence: number;
   keyPoints: string[];
 }
+
+// Helper functions for parsing AI responses
+const determineSentiment = (aiResponse: string): "bullish" | "bearish" | "neutral" => {
+  const lowerCaseResponse = aiResponse.toLowerCase();
+  if (lowerCaseResponse.includes("bullish") || 
+      lowerCaseResponse.includes("positive") || 
+      lowerCaseResponse.includes("upward") || 
+      lowerCaseResponse.includes("growth")) {
+    return "bullish";
+  } else if (lowerCaseResponse.includes("bearish") || 
+            lowerCaseResponse.includes("negative") || 
+            lowerCaseResponse.includes("downward") || 
+            lowerCaseResponse.includes("decline")) {
+    return "bearish";
+  }
+  return "neutral";
+};
+
+const calculateConfidence = (aiResponse: string): number => {
+  // Look for confidence indicators in text
+  const confidencePatterns = [
+    { pattern: /strong confidence|highly confident|very likely|certainly|definitely/i, value: 0.9 },
+    { pattern: /confident|likely|probably|good chance|expect/i, value: 0.75 },
+    { pattern: /possible|might|could|may|moderate confidence/i, value: 0.6 },
+    { pattern: /uncertain|unclear|difficult to predict|hard to say/i, value: 0.4 },
+    { pattern: /unlikely|doubtful|improbable/i, value: 0.25 },
+    { pattern: /highly unlikely|very doubtful|extremely improbable/i, value: 0.1 },
+  ];
+  
+  for (const { pattern, value } of confidencePatterns) {
+    if (pattern.test(aiResponse)) {
+      return value;
+    }
+  }
+  
+  // Default confidence if no patterns match
+  return 0.6;
+};
+
+const extractKeyPoints = (aiResponse: string): string[] => {
+  // Split by common list markers
+  const splitByBullet = aiResponse.split(/•|\*|\-|\d+\.\s/);
+  
+  // If we have bullet points, process them
+  if (splitByBullet.length > 1) {
+    return splitByBullet
+      .map(point => point.trim())
+      .filter(point => point.length > 10) // Filter out too short items
+      .slice(0, 5); // Limit to 5 key points
+  }
+  
+  // If no bullet points found, try to extract sentences
+  const sentences = aiResponse.split(/\.(?!\d)/g); // Split by periods not followed by digits
+  
+  return sentences
+    .map(sentence => sentence.trim())
+    .filter(sentence => sentence.length > 15 && sentence.length < 100)
+    .slice(0, 4); // Get first 4 meaningful sentences
+};
 
 // Mock analysis responses
 const mockAnalysisResponses: Record<string, AIAnalysisResponse> = {
@@ -73,40 +134,28 @@ const mockAnalysisResponses: Record<string, AIAnalysisResponse> = {
 
 export const getAIAnalysis = async (cryptoSymbol: string): Promise<AIAnalysisResponse> => {
   try {
-    // For development, return mock data
     const symbol = cryptoSymbol.toUpperCase();
     
-    if (mockAnalysisResponses[symbol]) {
+    // Use mock data if flag is true and we have a mock response for this symbol
+    if (USE_MOCK_DATA && mockAnalysisResponses[symbol]) {
+      console.log(`Using mock data for ${symbol}`);
       return mockAnalysisResponses[symbol];
     }
     
-    // Default response if symbol not found in mock data
-    return {
-      analysis: `Analysis for ${symbol} indicates that the asset is currently in a consolidation phase. Technical indicators show mixed signals, suggesting a wait-and-see approach may be prudent. Market sentiment appears neutral with equal bullish and bearish arguments.`,
-      sentiment: "neutral",
-      confidence: 0.5,
-      keyPoints: [
-        "Market in consolidation phase",
-        "Technical indicators show mixed signals",
-        "Trading volume is average",
-        "Monitor for breakout above resistance"
-      ]
-    };
-
-    // In production, make an actual API call to Groq
-    /*
+    // Make an actual API call to Groq
+    console.log(`Calling Groq API for ${symbol} analysis`);
     const response = await axios.post(
-      "https://api.groq.com/v1/completion",
+      "https://api.groq.com/openai/v1/chat/completions",
       {
         model: "llama-3-8b-8192",
         messages: [
           {
             role: "system",
-            content: "You are a cryptocurrency analysis AI. Provide detailed, well-structured analysis of market trends and coin fundamentals. Include sentiment (bullish, bearish, neutral) and confidence level."
+            content: "You are a cryptocurrency analysis AI. Provide detailed, well-structured analysis of market trends and coin fundamentals. Include clear points about sentiment (bullish, bearish, neutral) and explain your confidence level in your analysis."
           },
           {
             role: "user",
-            content: `Provide a detailed analysis of ${cryptoSymbol} current market position, technical analysis, and future outlook.`
+            content: `Provide a detailed analysis of ${cryptoSymbol} current market position, technical analysis, and future outlook. Structure your response with clear points.`
           }
         ],
       },
@@ -118,19 +167,19 @@ export const getAIAnalysis = async (cryptoSymbol: string): Promise<AIAnalysisRes
       }
     );
 
-    // Process and structure the AI response
+    // Extract the AI response
     const aiResponse = response.data.choices[0].message.content;
+    console.log(`Received Groq API response for ${symbol}`);
     
-    // In real implementation, you would parse the AI response and extract the required fields
+    // Process and structure the AI response
     const processedResponse: AIAnalysisResponse = {
       analysis: aiResponse,
-      sentiment: determineSentiment(aiResponse), // Create a function to determine sentiment
-      confidence: calculateConfidence(aiResponse), // Create a function to calculate confidence
-      keyPoints: extractKeyPoints(aiResponse), // Create a function to extract key points
+      sentiment: determineSentiment(aiResponse),
+      confidence: calculateConfidence(aiResponse),
+      keyPoints: extractKeyPoints(aiResponse),
     };
     
     return processedResponse;
-    */
   } catch (error) {
     console.error("Error fetching AI analysis:", error);
     
@@ -144,32 +193,36 @@ export const getAIAnalysis = async (cryptoSymbol: string): Promise<AIAnalysisRes
   }
 };
 
-// Mock chatbot function
+// Chatbot function using Groq API
 export const getChatbotResponse = async (message: string): Promise<string> => {
   try {
-    // For development, return mock responses
-    if (message.toLowerCase().includes("bitcoin") || message.toLowerCase().includes("btc")) {
-      return "Bitcoin is showing strong momentum with key support at $58,000. Institutional interest remains high, and on-chain metrics suggest accumulation. Consider dollar-cost averaging if you're looking to build a position.";
-    } else if (message.toLowerCase().includes("ethereum") || message.toLowerCase().includes("eth")) {
-      return "Ethereum's network activity is growing with increased adoption of layer-2 solutions. The recent price action indicates consolidation before potential upward movement. The upcoming protocol upgrades should address scalability issues.";
-    } else if (message.toLowerCase().includes("best") || message.toLowerCase().includes("recommend")) {
-      return "Based on risk-reward profiles, consider allocating a portion of your portfolio to established cryptocurrencies like Bitcoin and Ethereum as a foundation. For higher growth potential with increased risk, research layer-1 protocols with growing ecosystems and real-world utility.";
-    } else if (message.toLowerCase().includes("market")) {
-      return "The current market sentiment is cautiously optimistic. Bitcoin dominance is at 43%, suggesting altcoins could perform well if market momentum continues. Always maintain a balanced portfolio and only invest what you can afford to lose.";
+    // Use mock responses if flag is true
+    if (USE_MOCK_DATA) {
+      console.log("Using mock chatbot response");
+      // Mock responses for specific queries
+      if (message.toLowerCase().includes("bitcoin") || message.toLowerCase().includes("btc")) {
+        return "Bitcoin is showing strong momentum with key support at $58,000. Institutional interest remains high, and on-chain metrics suggest accumulation. Consider dollar-cost averaging if you're looking to build a position.";
+      } else if (message.toLowerCase().includes("ethereum") || message.toLowerCase().includes("eth")) {
+        return "Ethereum's network activity is growing with increased adoption of layer-2 solutions. The recent price action indicates consolidation before potential upward movement. The upcoming protocol upgrades should address scalability issues.";
+      } else if (message.toLowerCase().includes("best") || message.toLowerCase().includes("recommend")) {
+        return "Based on risk-reward profiles, consider allocating a portion of your portfolio to established cryptocurrencies like Bitcoin and Ethereum as a foundation. For higher growth potential with increased risk, research layer-1 protocols with growing ecosystems and real-world utility.";
+      } else if (message.toLowerCase().includes("market")) {
+        return "The current market sentiment is cautiously optimistic. Bitcoin dominance is at 43%, suggesting altcoins could perform well if market momentum continues. Always maintain a balanced portfolio and only invest what you can afford to lose.";
+      }
+      
+      return "I'm your crypto AI assistant. I can help analyze market trends, provide insights on specific cryptocurrencies, or suggest investment strategies based on your goals and risk tolerance. What specific information are you looking for?";
     }
     
-    return "I'm your crypto AI assistant. I can help analyze market trends, provide insights on specific cryptocurrencies, or suggest investment strategies based on your goals and risk tolerance. What specific information are you looking for?";
-
-    // In production, make an actual API call to Groq
-    /*
+    // Make an actual API call to Groq
+    console.log("Calling Groq API for chatbot response");
     const response = await axios.post(
-      "https://api.groq.com/v1/chat/completions",
+      "https://api.groq.com/openai/v1/chat/completions",
       {
         model: "llama-3-8b-8192",
         messages: [
           {
             role: "system",
-            content: "You are a helpful cryptocurrency assistant. Provide concise, accurate information about cryptocurrencies, market trends, and investment strategies. Always remind users that your advice is not financial advice."
+            content: "You are a helpful cryptocurrency assistant. Provide concise, accurate information about cryptocurrencies, market trends, and investment strategies. Always remind users that your advice is not financial advice. Keep responses under 200 words."
           },
           {
             role: "user",
@@ -185,8 +238,8 @@ export const getChatbotResponse = async (message: string): Promise<string> => {
       }
     );
     
+    console.log("Received Groq API response for chat");
     return response.data.choices[0].message.content;
-    */
   } catch (error) {
     console.error("Error fetching chatbot response:", error);
     return "I'm having trouble connecting to my knowledge base at the moment. Please try again later.";
