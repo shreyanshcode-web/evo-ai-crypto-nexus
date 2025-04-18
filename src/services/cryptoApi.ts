@@ -1,4 +1,3 @@
-
 import axios from "axios";
 
 interface CryptoData {
@@ -32,6 +31,69 @@ interface CoinMarketCapResponse {
 
 // API Key for CoinMarketCap
 const API_KEY = "21b1412d-3ca3-4a54-b4d9-e8a4f62d7969";
+const BASE_URL = "https://pro-api.coinmarketcap.com/v1";
+
+// Function to fetch cryptocurrency data from CoinMarketCap
+export const fetchTopCryptos = async (limit: number = 10): Promise<CryptoData[]> => {
+  try {
+    const response = await axios.get<CoinMarketCapResponse>(
+      `${BASE_URL}/cryptocurrency/listings/latest`,
+      {
+        params: {
+          start: 1,
+          limit: limit,
+          convert: "USD",
+        },
+        headers: {
+          "X-CMC_PRO_API_KEY": API_KEY,
+          "Accept": "application/json",
+        },
+      }
+    );
+    
+    console.log("CoinMarketCap API Response:", response.data);
+    return response.data.data;
+  } catch (error) {
+    console.error("Error fetching cryptocurrency data:", error);
+    // Fallback to mock data only if there's an error
+    return mockCryptoData.slice(0, limit);
+  }
+};
+
+// Function to get historical data for a specific cryptocurrency
+export const getHistoricalPriceData = async (symbol: string, days: number = 7) => {
+  try {
+    const response = await axios.get(
+      `${BASE_URL}/cryptocurrency/quotes/historical`,
+      {
+        params: {
+          symbol: symbol,
+          interval: days <= 1 ? '1h' : '1d',
+          count: days <= 1 ? 24 : days,
+          convert: 'USD'
+        },
+        headers: {
+          "X-CMC_PRO_API_KEY": API_KEY,
+          "Accept": "application/json",
+        },
+      }
+    );
+
+    // Format the data for the chart
+    const data = response.data.data[symbol].quotes.map((quote: any) => ({
+      date: quote.timestamp,
+      price: quote.quote.USD.price
+    }));
+
+    return data;
+  } catch (error) {
+    console.error(`Error fetching historical data for ${symbol}:`, error);
+    // Fallback to mock data only if there's an error
+    const crypto = mockCryptoData.find(c => c.symbol === symbol);
+    const basePrice = crypto ? crypto.quote.USD.price : 100;
+    return generateMockHistoricalData(basePrice, days);
+  }
+};
 
 // Sample mock data for development when API is not available
 const mockCryptoData: CryptoData[] = [
@@ -219,37 +281,6 @@ const generateMockHistoricalData = (basePrice: number, days: number) => {
   return data;
 };
 
-// Function to fetch cryptocurrency data from CoinMarketCap
-export const fetchTopCryptos = async (limit: number = 10): Promise<CryptoData[]> => {
-  try {
-    // Using mock data due to API connectivity issues
-    console.log("Using mock data for cryptocurrency listings");
-    return mockCryptoData.slice(0, limit);
-    
-    /* Uncomment this when API connection is working
-    const response = await axios.get<CoinMarketCapResponse>(
-      "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest",
-      {
-        params: {
-          start: 1,
-          limit: limit,
-          convert: "USD",
-        },
-        headers: {
-          "X-CMC_PRO_API_KEY": API_KEY,
-          "Accept": "application/json",
-        },
-      }
-    );
-    return response.data.data;
-    */
-  } catch (error) {
-    console.error("Error fetching cryptocurrency data:", error);
-    // Return mock data as fallback
-    return mockCryptoData.slice(0, limit);
-  }
-};
-
 // Function to get data for a specific cryptocurrency
 export const fetchCryptoDetails = async (id: number): Promise<CryptoData | null> => {
   try {
@@ -282,49 +313,5 @@ export const fetchCryptoDetails = async (id: number): Promise<CryptoData | null>
     // Return mock data as fallback
     const crypto = mockCryptoData.find(c => c.id === id);
     return crypto || null;
-  }
-};
-
-// Function to get historical data
-export const getHistoricalPriceData = async (symbol: string, days: number = 7) => {
-  try {
-    // Find the mock crypto to get a realistic base price
-    const crypto = mockCryptoData.find(c => c.symbol === symbol);
-    const basePrice = crypto ? crypto.quote.USD.price : 100; // Default to 100 if not found
-    
-    // Return generated mock historical data
-    return generateMockHistoricalData(basePrice, days);
-    
-    /* Uncomment this when API connection is working
-    const response = await axios.get(
-      `https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/historical`,
-      {
-        params: {
-          symbol: symbol,
-          interval: days <= 1 ? '1h' : '1d',
-          count: days <= 1 ? 24 : days,
-          convert: 'USD'
-        },
-        headers: {
-          "X-CMC_PRO_API_KEY": API_KEY,
-          "Accept": "application/json",
-        },
-      }
-    );
-
-    // Format the data for the chart
-    const data = response.data.data[symbol].quotes.map((quote: any) => ({
-      date: quote.timestamp,
-      price: quote.quote.USD.price
-    }));
-
-    return data;
-    */
-  } catch (error) {
-    console.error(`Error fetching historical data for ${symbol}:`, error);
-    // Return mock historical data on error
-    const crypto = mockCryptoData.find(c => c.symbol === symbol);
-    const basePrice = crypto ? crypto.quote.USD.price : 100; // Default to 100 if not found
-    return generateMockHistoricalData(basePrice, days);
   }
 };
