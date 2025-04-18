@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -14,7 +13,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ArrowUpIcon, ArrowDownIcon, ArrowRightIcon } from "lucide-react";
 
-// Create a type for our cryptocurrency data
 interface CryptoData {
   id: number;
   name: string;
@@ -32,7 +30,6 @@ interface CryptoData {
   };
 }
 
-// Create a type for our chart data
 interface ChartData {
   date: string;
   price: number;
@@ -44,21 +41,19 @@ const Cryptocurrencies = () => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [timeRange, setTimeRange] = useState<string>("7d");
   
-  // Fetch top cryptocurrencies
   const { data: cryptoData, isLoading, error } = useQuery({
     queryKey: ["topCryptos"],
     queryFn: () => fetchTopCryptos(10),
-    staleTime: 60000, // 1 minute
+    refetchInterval: 30000,
+    staleTime: 10000,
   });
 
-  // Effect to set default selected crypto when data loads
   useEffect(() => {
     if (cryptoData && cryptoData.length > 0 && !selectedCrypto) {
       setSelectedCrypto(cryptoData[0]);
     }
   }, [cryptoData, selectedCrypto]);
 
-  // Effect to fetch historical data when selected crypto changes
   useEffect(() => {
     const fetchHistoricalData = async () => {
       if (!selectedCrypto) return;
@@ -75,7 +70,6 @@ const Cryptocurrencies = () => {
     fetchHistoricalData();
   }, [selectedCrypto, timeRange]);
   
-  // Function to handle crypto selection
   const handleSelectCrypto = (crypto: CryptoData) => {
     setSelectedCrypto(crypto);
     toast({
@@ -84,21 +78,18 @@ const Cryptocurrencies = () => {
     });
   };
   
-  // Function to get color based on percent change
   const getPercentChangeColor = (percentChange: number) => {
     if (percentChange > 0) return "text-green-500";
     if (percentChange < 0) return "text-red-500";
     return "text-gray-500";
   };
   
-  // Function to get arrow icon based on percent change
   const getPercentChangeIcon = (percentChange: number) => {
     if (percentChange > 0) return <ArrowUpIcon className="h-4 w-4" />;
     if (percentChange < 0) return <ArrowDownIcon className="h-4 w-4" />;
     return <ArrowRightIcon className="h-4 w-4" />;
   };
   
-  // Format price with appropriate decimals
   const formatPrice = (price: number) => {
     if (price < 0.01) return price.toFixed(6);
     if (price < 1) return price.toFixed(4);
@@ -109,7 +100,6 @@ const Cryptocurrencies = () => {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col md:flex-row gap-6">
-        {/* Left side - Cryptocurrency list */}
         <div className="md:w-1/3">
           <Card className="p-4">
             <h2 className="text-xl font-bold mb-4">Top Cryptocurrencies</h2>
@@ -153,7 +143,6 @@ const Cryptocurrencies = () => {
           </Card>
         </div>
         
-        {/* Right side - Chart and details */}
         <div className="md:w-2/3">
           {selectedCrypto ? (
             <>
@@ -208,7 +197,6 @@ const Cryptocurrencies = () => {
                   </div>
                 </div>
                 
-                {/* Chart */}
                 <div className="h-[400px] mt-6">
                   <ChartContainer 
                     className="h-[400px]" 
@@ -263,7 +251,6 @@ const Cryptocurrencies = () => {
                 </div>
               </Card>
               
-              {/* Market Stats */}
               <Card className="p-4">
                 <h3 className="text-xl font-bold mb-4">Market Stats</h3>
                 <Separator className="mb-4" />
