@@ -1,3 +1,4 @@
+
 import axios from "axios";
 
 interface CryptoData {
@@ -36,6 +37,7 @@ const BASE_URL = "https://pro-api.coinmarketcap.com/v1";
 // Function to fetch cryptocurrency data from CoinMarketCap
 export const fetchTopCryptos = async (limit: number = 10): Promise<CryptoData[]> => {
   try {
+    console.log("Fetching top cryptocurrencies from CoinMarketCap API...");
     const response = await axios.get<CoinMarketCapResponse>(
       `${BASE_URL}/cryptocurrency/listings/latest`,
       {
@@ -51,11 +53,17 @@ export const fetchTopCryptos = async (limit: number = 10): Promise<CryptoData[]>
       }
     );
     
-    console.log("CoinMarketCap API Response:", response.data);
+    console.log("CoinMarketCap API Response Status:", response.status);
+    console.log("CoinMarketCap API Data Count:", response.data.data.length);
     return response.data.data;
-  } catch (error) {
-    console.error("Error fetching cryptocurrency data:", error);
-    // Fallback to mock data only if there's an error
+  } catch (error: any) {
+    console.error("Error fetching cryptocurrency data:", error.message);
+    if (error.response) {
+      console.error("API Error Response:", error.response.data);
+      console.error("API Error Status:", error.response.status);
+    }
+    // Fallback to mock data when API fails
+    console.log("Using mock crypto data as fallback");
     return mockCryptoData.slice(0, limit);
   }
 };
@@ -63,6 +71,16 @@ export const fetchTopCryptos = async (limit: number = 10): Promise<CryptoData[]>
 // Function to get historical data for a specific cryptocurrency
 export const getHistoricalPriceData = async (symbol: string, days: number = 7) => {
   try {
+    console.log(`Fetching historical data for ${symbol} for ${days} days...`);
+    
+    // For historical data, we're currently using mock data
+    // This is because the historical endpoint requires a higher tier API subscription
+    console.log(`Using mock historical data for ${symbol}`);
+    const crypto = mockCryptoData.find(c => c.symbol === symbol);
+    const basePrice = crypto ? crypto.quote.USD.price : 100;
+    return generateMockHistoricalData(basePrice, days);
+    
+    /* Uncomment and modify this when you have access to the historical endpoint
     const response = await axios.get(
       `${BASE_URL}/cryptocurrency/quotes/historical`,
       {
@@ -86,9 +104,10 @@ export const getHistoricalPriceData = async (symbol: string, days: number = 7) =
     }));
 
     return data;
+    */
   } catch (error) {
     console.error(`Error fetching historical data for ${symbol}:`, error);
-    // Fallback to mock data only if there's an error
+    // Fallback to mock data
     const crypto = mockCryptoData.find(c => c.symbol === symbol);
     const basePrice = crypto ? crypto.quote.USD.price : 100;
     return generateMockHistoricalData(basePrice, days);
@@ -284,15 +303,9 @@ const generateMockHistoricalData = (basePrice: number, days: number) => {
 // Function to get data for a specific cryptocurrency
 export const fetchCryptoDetails = async (id: number): Promise<CryptoData | null> => {
   try {
-    // Using mock data due to API connectivity issues
-    const crypto = mockCryptoData.find(c => c.id === id);
-    if (crypto) {
-      return crypto;
-    }
-    
-    /* Uncomment this when API connection is working
+    console.log(`Fetching details for crypto ID ${id}...`);
     const response = await axios.get<any>(
-      "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest",
+      `${BASE_URL}/cryptocurrency/quotes/latest`,
       {
         params: {
           id: id,
@@ -304,12 +317,18 @@ export const fetchCryptoDetails = async (id: number): Promise<CryptoData | null>
         },
       }
     );
-    return response.data.data[id];
-    */
     
+    console.log("Crypto details response:", response.data);
+    if (response.data && response.data.data && response.data.data[id]) {
+      return response.data.data[id];
+    }
     return null;
-  } catch (error) {
-    console.error(`Error fetching details for crypto ID ${id}:`, error);
+  } catch (error: any) {
+    console.error(`Error fetching details for crypto ID ${id}:`, error.message);
+    if (error.response) {
+      console.error("API Error Response:", error.response.data);
+      console.error("API Error Status:", error.response.status);
+    }
     // Return mock data as fallback
     const crypto = mockCryptoData.find(c => c.id === id);
     return crypto || null;

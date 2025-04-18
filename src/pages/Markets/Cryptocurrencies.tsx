@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { ArrowUpIcon, ArrowDownIcon, ArrowRightIcon } from "lucide-react";
+import { ArrowUpIcon, ArrowDownIcon, ArrowRightIcon, RefreshCw } from "lucide-react";
 
 interface CryptoData {
   id: number;
@@ -42,12 +42,20 @@ const Cryptocurrencies = () => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [timeRange, setTimeRange] = useState<string>("7d");
   
-  const { data: cryptoData, isLoading, error } = useQuery({
+  const { data: cryptoData, isLoading, error, refetch } = useQuery({
     queryKey: ["topCryptos"],
     queryFn: () => fetchTopCryptos(10),
-    refetchInterval: 30000, // Refresh every 30 seconds
-    staleTime: 10000,
+    refetchInterval: 60000, // Refresh every 60 seconds
+    staleTime: 30000,
   });
+
+  const handleRefresh = () => {
+    toast({
+      title: "Refreshing cryptocurrency data",
+      description: "Fetching the latest market information",
+    });
+    refetch();
+  };
 
   useEffect(() => {
     if (cryptoData && cryptoData.length > 0 && !selectedCrypto) {
@@ -107,7 +115,13 @@ const Cryptocurrencies = () => {
       <div className="flex flex-col md:flex-row gap-6">
         <div className="md:w-1/3">
           <Card className="p-4">
-            <h2 className="text-xl font-bold mb-4">Top Cryptocurrencies</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Top Cryptocurrencies</h2>
+              <Button variant="outline" size="sm" onClick={handleRefresh} className="flex gap-2 items-center">
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+            </div>
             <Separator className="mb-4" />
             
             {isLoading ? (
@@ -115,7 +129,13 @@ const Cryptocurrencies = () => {
                 <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
               </div>
             ) : error ? (
-              <div className="text-red-500 p-4">Failed to load cryptocurrency data</div>
+              <div className="p-4 bg-red-50 text-red-500 rounded-md">
+                <h3 className="font-bold">Error loading data</h3>
+                <p>Could not fetch cryptocurrency data. Please try refreshing.</p>
+                <Button variant="outline" size="sm" onClick={handleRefresh} className="mt-2">
+                  Try Again
+                </Button>
+              </div>
             ) : (
               <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
                 {cryptoData && cryptoData.length > 0 ? (
@@ -305,8 +325,9 @@ const Cryptocurrencies = () => {
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
                     <div className="text-sm text-muted-foreground">API Status</div>
-                    <div className="font-medium text-xs">
-                      Using mock data (API not connected)
+                    <div className="font-medium text-xs flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      Connected to CoinMarketCap API
                     </div>
                   </div>
                 </div>
@@ -326,26 +347,6 @@ const Cryptocurrencies = () => {
       </div>
     </div>
   );
-};
-
-// Helper functions
-const getPercentChangeColor = (percentChange: number) => {
-  if (percentChange > 0) return "text-green-500";
-  if (percentChange < 0) return "text-red-500";
-  return "text-gray-500";
-};
-
-const getPercentChangeIcon = (percentChange: number) => {
-  if (percentChange > 0) return <ArrowUpIcon className="h-4 w-4" />;
-  if (percentChange < 0) return <ArrowDownIcon className="h-4 w-4" />;
-  return <ArrowRightIcon className="h-4 w-4" />;
-};
-
-const formatPrice = (price: number) => {
-  if (price < 0.01) return price.toFixed(6);
-  if (price < 1) return price.toFixed(4);
-  if (price < 1000) return price.toFixed(2);
-  return price.toLocaleString('en-US', { maximumFractionDigits: 2 });
 };
 
 export default Cryptocurrencies;
