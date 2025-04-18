@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -44,12 +45,13 @@ const Cryptocurrencies = () => {
   const { data: cryptoData, isLoading, error } = useQuery({
     queryKey: ["topCryptos"],
     queryFn: () => fetchTopCryptos(10),
-    refetchInterval: 30000,
+    refetchInterval: 30000, // Refresh every 30 seconds
     staleTime: 10000,
   });
 
   useEffect(() => {
     if (cryptoData && cryptoData.length > 0 && !selectedCrypto) {
+      console.log("Setting initial selected crypto", cryptoData[0]);
       setSelectedCrypto(cryptoData[0]);
     }
   }, [cryptoData, selectedCrypto]);
@@ -63,7 +65,9 @@ const Cryptocurrencies = () => {
       if (timeRange === "30d") days = 30;
       if (timeRange === "90d") days = 90;
       
+      console.log(`Fetching historical data for ${selectedCrypto.symbol}, ${days} days`);
       const data = await getHistoricalPriceData(selectedCrypto.symbol, days);
+      console.log("Historical data received:", data);
       setChartData(data);
     };
     
@@ -71,6 +75,7 @@ const Cryptocurrencies = () => {
   }, [selectedCrypto, timeRange]);
   
   const handleSelectCrypto = (crypto: CryptoData) => {
+    console.log("Selected crypto:", crypto);
     setSelectedCrypto(crypto);
     toast({
       title: `Loading ${crypto.name} data`,
@@ -113,31 +118,35 @@ const Cryptocurrencies = () => {
               <div className="text-red-500 p-4">Failed to load cryptocurrency data</div>
             ) : (
               <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-                {cryptoData?.map((crypto) => (
-                  <div
-                    key={crypto.id}
-                    className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                      selectedCrypto?.id === crypto.id 
-                        ? "bg-primary text-primary-foreground" 
-                        : "hover:bg-muted"
-                    }`}
-                    onClick={() => handleSelectCrypto(crypto)}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <div className="font-bold">{crypto.symbol}</div>
-                        <div className="text-sm opacity-80">{crypto.name}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-mono font-medium">${formatPrice(crypto.quote.USD.price)}</div>
-                        <div className={`text-xs flex items-center justify-end ${getPercentChangeColor(crypto.quote.USD.percent_change_24h)}`}>
-                          {getPercentChangeIcon(crypto.quote.USD.percent_change_24h)}
-                          <span>{Math.abs(crypto.quote.USD.percent_change_24h).toFixed(2)}%</span>
+                {cryptoData && cryptoData.length > 0 ? (
+                  cryptoData.map((crypto) => (
+                    <div
+                      key={crypto.id}
+                      className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                        selectedCrypto?.id === crypto.id 
+                          ? "bg-primary text-primary-foreground" 
+                          : "hover:bg-muted"
+                      }`}
+                      onClick={() => handleSelectCrypto(crypto)}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="font-bold">{crypto.symbol}</div>
+                          <div className="text-sm opacity-80">{crypto.name}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-mono font-medium">${formatPrice(crypto.quote.USD.price)}</div>
+                          <div className={`text-xs flex items-center justify-end ${getPercentChangeColor(crypto.quote.USD.percent_change_24h)}`}>
+                            {getPercentChangeIcon(crypto.quote.USD.percent_change_24h)}
+                            <span>{Math.abs(crypto.quote.USD.percent_change_24h).toFixed(2)}%</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="text-center p-4">No cryptocurrency data available</div>
+                )}
               </div>
             )}
           </Card>
@@ -198,56 +207,62 @@ const Cryptocurrencies = () => {
                 </div>
                 
                 <div className="h-[400px] mt-6">
-                  <ChartContainer 
-                    className="h-[400px]" 
-                    config={{
-                      price: {
-                        label: "Price",
-                        theme: {
-                          light: "hsl(var(--primary))",
-                          dark: "hsl(var(--primary))"
-                        }
-                      }
-                    }}
-                  >
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis 
-                        dataKey="date" 
-                        tickMargin={10}
-                        tickFormatter={(value) => {
-                          if (timeRange === "1d") {
-                            return value.split("T")[1]?.substring(0, 5) || value;
+                  {chartData && chartData.length > 0 ? (
+                    <ChartContainer 
+                      className="h-[400px]" 
+                      config={{
+                        price: {
+                          label: "Price",
+                          theme: {
+                            light: "hsl(var(--primary))",
+                            dark: "hsl(var(--primary))"
                           }
-                          return value.split("T")[0].substring(5);
-                        }}
-                      />
-                      <YAxis 
-                        tickFormatter={(value) => `$${formatPrice(value)}`}
-                        domain={['auto', 'auto']}
-                        tickMargin={10}
-                      />
-                      <ChartTooltip
-                        content={
-                          <ChartTooltipContent
-                            labelFormatter={(value) => {
-                              const date = new Date(value);
-                              return date.toLocaleString();
-                            }}
-                          />
                         }
-                      />
-                      <Line 
-                        type="monotone" 
-                        name="price"
-                        dataKey="price" 
-                        stroke="hsl(var(--primary))" 
-                        strokeWidth={2}
-                        dot={false}
-                        activeDot={{ r: 6 }}
-                      />
-                    </LineChart>
-                  </ChartContainer>
+                      }}
+                    >
+                      <LineChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis 
+                          dataKey="date" 
+                          tickMargin={10}
+                          tickFormatter={(value) => {
+                            if (timeRange === "1d") {
+                              return value.split("T")[1]?.substring(0, 5) || value;
+                            }
+                            return value.split("T")[0].substring(5);
+                          }}
+                        />
+                        <YAxis 
+                          tickFormatter={(value) => `$${formatPrice(value)}`}
+                          domain={['auto', 'auto']}
+                          tickMargin={10}
+                        />
+                        <ChartTooltip
+                          content={
+                            <ChartTooltipContent
+                              labelFormatter={(value) => {
+                                const date = new Date(value);
+                                return date.toLocaleString();
+                              }}
+                            />
+                          }
+                        />
+                        <Line 
+                          type="monotone" 
+                          name="price"
+                          dataKey="price" 
+                          stroke="hsl(var(--primary))" 
+                          strokeWidth={2}
+                          dot={false}
+                          activeDot={{ r: 6 }}
+                        />
+                      </LineChart>
+                    </ChartContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                    </div>
+                  )}
                 </div>
               </Card>
               
@@ -289,9 +304,9 @@ const Cryptocurrencies = () => {
                     </div>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
-                    <div className="text-sm text-muted-foreground">API Key</div>
-                    <div className="font-medium text-xs truncate">
-                      21b1412d-3ca3-4a54-b4d9-e8a4f62d7969
+                    <div className="text-sm text-muted-foreground">API Status</div>
+                    <div className="font-medium text-xs">
+                      Using mock data (API not connected)
                     </div>
                   </div>
                 </div>
@@ -311,6 +326,26 @@ const Cryptocurrencies = () => {
       </div>
     </div>
   );
+};
+
+// Helper functions
+const getPercentChangeColor = (percentChange: number) => {
+  if (percentChange > 0) return "text-green-500";
+  if (percentChange < 0) return "text-red-500";
+  return "text-gray-500";
+};
+
+const getPercentChangeIcon = (percentChange: number) => {
+  if (percentChange > 0) return <ArrowUpIcon className="h-4 w-4" />;
+  if (percentChange < 0) return <ArrowDownIcon className="h-4 w-4" />;
+  return <ArrowRightIcon className="h-4 w-4" />;
+};
+
+const formatPrice = (price: number) => {
+  if (price < 0.01) return price.toFixed(6);
+  if (price < 1) return price.toFixed(4);
+  if (price < 1000) return price.toFixed(2);
+  return price.toLocaleString('en-US', { maximumFractionDigits: 2 });
 };
 
 export default Cryptocurrencies;
