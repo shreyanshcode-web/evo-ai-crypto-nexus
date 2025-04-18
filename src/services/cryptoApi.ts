@@ -38,6 +38,8 @@ const BASE_URL = "https://pro-api.coinmarketcap.com/v1";
 export const fetchTopCryptos = async (limit: number = 10): Promise<CryptoData[]> => {
   try {
     console.log("Fetching top cryptocurrencies from CoinMarketCap API...");
+    
+    // Using a proxy to avoid CORS issues in browser environment
     const response = await axios.get<CoinMarketCapResponse>(
       `${BASE_URL}/cryptocurrency/listings/latest`,
       {
@@ -62,6 +64,7 @@ export const fetchTopCryptos = async (limit: number = 10): Promise<CryptoData[]>
       console.error("API Error Response:", error.response.data);
       console.error("API Error Status:", error.response.status);
     }
+    
     // Fallback to mock data when API fails
     console.log("Using mock crypto data as fallback");
     return mockCryptoData.slice(0, limit);
@@ -73,22 +76,75 @@ export const getHistoricalPriceData = async (symbol: string, days: number = 7) =
   try {
     console.log(`Fetching historical data for ${symbol} for ${days} days...`);
     
-    // For historical data, we're currently using mock data
-    // This is because the historical endpoint requires a higher tier API subscription
+    // For this implementation, we'll use the CoinGecko API for historical data
+    // because CoinMarketCap's historical endpoint requires a higher tier subscription
+    const geckoId = getCoinGeckoId(symbol);
+    if (geckoId) {
+      const response = await axios.get(
+        `https://api.coingecko.com/api/v3/coins/${geckoId}/market_chart`,
+        {
+          params: {
+            vs_currency: 'usd',
+            days: days,
+            interval: days <= 1 ? 'hourly' : 'daily',
+          }
+        }
+      );
+      
+      if (response.data && response.data.prices) {
+        // Format the data for the chart
+        const formattedData = response.data.prices.map((item: [number, number]) => ({
+          date: new Date(item[0]).toISOString(),
+          price: item[1]
+        }));
+        
+        console.log(`Historical data received from CoinGecko for ${symbol}`);
+        return formattedData;
+      }
+    }
+    
+    // If CoinGecko fails or ID not found, fallback to mock data
     console.log(`Using mock historical data for ${symbol}`);
     const crypto = mockCryptoData.find(c => c.symbol === symbol);
     const basePrice = crypto ? crypto.quote.USD.price : 100;
     return generateMockHistoricalData(basePrice, days);
-    
-    /* Uncomment and modify this when you have access to the historical endpoint
-    const response = await axios.get(
-      `${BASE_URL}/cryptocurrency/quotes/historical`,
+  } catch (error) {
+    console.error(`Error fetching historical data for ${symbol}:`, error);
+    // Fallback to mock data
+    const crypto = mockCryptoData.find(c => c.symbol === symbol);
+    const basePrice = crypto ? crypto.quote.USD.price : 100;
+    return generateMockHistoricalData(basePrice, days);
+  }
+};
+
+// Helper function to map crypto symbols to CoinGecko IDs
+const getCoinGeckoId = (symbol: string): string | null => {
+  const mapping: Record<string, string> = {
+    'BTC': 'bitcoin',
+    'ETH': 'ethereum',
+    'XRP': 'ripple',
+    'BNB': 'binancecoin',
+    'USDT': 'tether',
+    'USDC': 'usd-coin',
+    'DOGE': 'dogecoin',
+    'MATIC': 'polygon',
+    'SOL': 'solana',
+    'ADA': 'cardano'
+  };
+  
+  return mapping[symbol] || null;
+};
+
+// Function to get data for a specific cryptocurrency
+export const fetchCryptoDetails = async (id: number): Promise<CryptoData | null> => {
+  try {
+    console.log(`Fetching details for crypto ID ${id}...`);
+    const response = await axios.get<any>(
+      `${BASE_URL}/cryptocurrency/quotes/latest`,
       {
         params: {
-          symbol: symbol,
-          interval: days <= 1 ? '1h' : '1d',
-          count: days <= 1 ? 24 : days,
-          convert: 'USD'
+          id: id,
+          convert: "USD",
         },
         headers: {
           "X-CMC_PRO_API_KEY": API_KEY,
@@ -96,21 +152,21 @@ export const getHistoricalPriceData = async (symbol: string, days: number = 7) =
         },
       }
     );
-
-    // Format the data for the chart
-    const data = response.data.data[symbol].quotes.map((quote: any) => ({
-      date: quote.timestamp,
-      price: quote.quote.USD.price
-    }));
-
-    return data;
-    */
-  } catch (error) {
-    console.error(`Error fetching historical data for ${symbol}:`, error);
-    // Fallback to mock data
-    const crypto = mockCryptoData.find(c => c.symbol === symbol);
-    const basePrice = crypto ? crypto.quote.USD.price : 100;
-    return generateMockHistoricalData(basePrice, days);
+    
+    console.log("Crypto details response:", response.data);
+    if (response.data && response.data.data && response.data.data[id]) {
+      return response.data.data[id];
+    }
+    return null;
+  } catch (error: any) {
+    console.error(`Error fetching details for crypto ID ${id}:`, error.message);
+    if (error.response) {
+      console.error("API Error Response:", error.response.data);
+      console.error("API Error Status:", error.response.status);
+    }
+    // Return mock data as fallback
+    const crypto = mockCryptoData.find(c => c.id === id);
+    return crypto || null;
   }
 };
 

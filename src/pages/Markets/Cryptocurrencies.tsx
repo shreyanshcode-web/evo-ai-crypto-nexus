@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { ArrowUpIcon, ArrowDownIcon, ArrowRightIcon, RefreshCw } from "lucide-react";
+import { ArrowUpIcon, ArrowDownIcon, ArrowRightIcon, RefreshCw, AlertCircle } from "lucide-react";
 
 interface CryptoData {
   id: number;
@@ -41,10 +41,35 @@ const Cryptocurrencies = () => {
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData | null>(null);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [timeRange, setTimeRange] = useState<string>("7d");
+  const [isUsingMockData, setIsUsingMockData] = useState(false);
   
-  const { data: cryptoData, isLoading, error, refetch } = useQuery({
+  const { 
+    data: cryptoData, 
+    isLoading, 
+    error, 
+    refetch,
+    isRefetching
+  } = useQuery({
     queryKey: ["topCryptos"],
-    queryFn: () => fetchTopCryptos(10),
+    queryFn: async () => {
+      try {
+        const data = await fetchTopCryptos(10);
+        // Check if we're using mock data by looking for Bitcoin price
+        // If Bitcoin price is exactly 66789.53, we're using mock data
+        const bitcoin = data.find(c => c.symbol === "BTC");
+        if (bitcoin && bitcoin.quote.USD.price === 66789.53) {
+          console.log("Detected mock data being used");
+          setIsUsingMockData(true);
+        } else {
+          setIsUsingMockData(false);
+        }
+        return data;
+      } catch (error) {
+        console.error("Error in query function:", error);
+        setIsUsingMockData(true);
+        throw error;
+      }
+    },
     refetchInterval: 60000, // Refresh every 60 seconds
     staleTime: 30000,
   });
@@ -118,11 +143,18 @@ const Cryptocurrencies = () => {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Top Cryptocurrencies</h2>
               <Button variant="outline" size="sm" onClick={handleRefresh} className="flex gap-2 items-center">
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`} />
                 Refresh
               </Button>
             </div>
             <Separator className="mb-4" />
+            
+            {isUsingMockData && (
+              <div className="mb-4 p-2 bg-yellow-50 text-yellow-800 rounded-md flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-xs">Using mock data. Network connection issue with CoinMarketCap API.</span>
+              </div>
+            )}
             
             {isLoading ? (
               <div className="flex items-center justify-center h-64">
@@ -326,8 +358,10 @@ const Cryptocurrencies = () => {
                   <div className="p-3 bg-muted rounded-lg">
                     <div className="text-sm text-muted-foreground">API Status</div>
                     <div className="font-medium text-xs flex items-center gap-1">
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      Connected to CoinMarketCap API
+                      <span className={`w-2 h-2 ${isUsingMockData ? "bg-yellow-500" : "bg-green-500"} rounded-full`}></span>
+                      {isUsingMockData 
+                        ? "Using fallback data (API connection issue)" 
+                        : "Connected to CoinMarketCap API"}
                     </div>
                   </div>
                 </div>
