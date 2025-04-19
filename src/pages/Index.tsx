@@ -1,38 +1,28 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ChevronRight, Diamond, Sparkles, BarChart3, Brain, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-
 const Index = () => {
   const [isHovered, setIsHovered] = useState(false);
-  
-  const features = [
-    {
-      icon: <BarChart3 className="h-8 w-8 text-crypto-purple" />,
-      title: "Real-time Crypto Tracking",
-      description: "Track cryptocurrency prices and market movements with interactive charts and real-time updates."
-    },
-    {
-      icon: <Brain className="h-8 w-8 text-crypto-purple" />,
-      title: "AI-Powered Analysis",
-      description: "Get intelligent insights and predictions about market trends using our advanced AI technology."
-    },
-    {
-      icon: <MessageSquare className="h-8 w-8 text-crypto-purple" />,
-      title: "AI Assistant",
-      description: "Chat with our AI assistant to find the best investment opportunities and get personalized advice."
-    },
-    {
-      icon: <Sparkles className="h-8 w-8 text-crypto-purple" />,
-      title: "Market Insights",
-      description: "Access expert analysis and in-depth market reports to make informed investment decisions."
-    }
-  ];
-
-  return (
-    <div className="min-h-screen">
+  const features = [{
+    icon: <BarChart3 className="h-8 w-8 text-crypto-purple" />,
+    title: "Real-time Crypto Tracking",
+    description: "Track cryptocurrency prices and market movements with interactive charts and real-time updates."
+  }, {
+    icon: <Brain className="h-8 w-8 text-crypto-purple" />,
+    title: "AI-Powered Analysis",
+    description: "Get intelligent insights and predictions about market trends using our advanced AI technology."
+  }, {
+    icon: <MessageSquare className="h-8 w-8 text-crypto-purple" />,
+    title: "AI Assistant",
+    description: "Chat with our AI assistant to find the best investment opportunities and get personalized advice."
+  }, {
+    icon: <Sparkles className="h-8 w-8 text-crypto-purple" />,
+    title: "Market Insights",
+    description: "Access expert analysis and in-depth market reports to make informed investment decisions."
+  }];
+  return <div className="min-h-screen">
       {/* Hero Section */}
       <section className="py-16 md:py-24">
         <div className="container px-4 md:px-6">
@@ -51,12 +41,7 @@ const Index = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mt-8">
                 <Link to="/signup">
-                  <Button 
-                    size="lg" 
-                    className="bg-crypto-purple hover:bg-crypto-deep-purple text-white"
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                  >
+                  <Button size="lg" className="bg-crypto-purple hover:bg-crypto-deep-purple text-white" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
                     Get Started
                     <ArrowRight className={`ml-2 h-4 w-4 transition-transform ${isHovered ? 'translate-x-1' : ''}`} />
                   </Button>
@@ -70,13 +55,7 @@ const Index = () => {
             </div>
             <div className="mx-auto lg:mx-0 relative">
               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-crypto-purple to-crypto-blue opacity-20 blur-3xl" />
-              <img 
-                src="https://placehold.co/600x400/9b87f5/FFFFFF?text=EVO+AI+Wallet&font=Montserrat"
-                alt="EVO AI Wallet Dashboard Preview" 
-                className="relative rounded-lg shadow-xl border border-border hover-scale"
-                width={550}
-                height={367}
-              />
+              <img alt="EVO AI Wallet Dashboard Preview" width={550} height={367} className="relative diamond-lg shadow-xl border border-border hover-scale object-scale-down" src="/lovable-uploads/aa13666c-7e51-49bb-a444-cd7865f3b38f.png" />
             </div>
           </div>
         </div>
@@ -92,8 +71,7 @@ const Index = () => {
             </p>
           </div>
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {features.map((feature, i) => (
-              <Card key={i} className="crypto-card hover-scale">
+            {features.map((feature, i) => <Card key={i} className="crypto-card hover-scale">
                 <CardHeader>
                   <div className="mb-2">{feature.icon}</div>
                   <CardTitle>{feature.title}</CardTitle>
@@ -101,8 +79,7 @@ const Index = () => {
                 <CardContent>
                   <CardDescription>{feature.description}</CardDescription>
                 </CardContent>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </div>
       </section>
@@ -122,7 +99,7 @@ const Index = () => {
               </div>
               <div className="flex justify-center md:justify-end">
                 <Link to="/signup">
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-crypto-purple">
+                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-crypto-purple text-sm px-[34px]">
                     Sign Up Now
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -132,8 +109,6 @@ const Index = () => {
           </div>
         </div>
       </section>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
