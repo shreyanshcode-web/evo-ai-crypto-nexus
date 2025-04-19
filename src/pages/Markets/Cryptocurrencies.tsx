@@ -54,14 +54,22 @@ const Cryptocurrencies = () => {
     queryFn: async () => {
       try {
         const data = await fetchTopCryptos(10);
-        // Check if we're using mock data by looking for Bitcoin price
-        // If Bitcoin price is exactly 66789.53, we're using mock data
-        const bitcoin = data.find(c => c.symbol === "BTC");
-        if (bitcoin && bitcoin.quote.USD.price === 66789.53) {
-          console.log("Detected mock data being used");
+        // Check if we're using mock data by checking the API response
+        // Mock data will be used if API call fails
+        if (!data || data.length === 0) {
+          console.log("No data returned, assuming mock data");
           setIsUsingMockData(true);
         } else {
-          setIsUsingMockData(false);
+          // Try to detect if we're using mock data
+          // This is just a heuristic - in a real app we'd have a more reliable way to know
+          const hasMockDataPattern = data.every(crypto => {
+            // Check if price exactly matches our mock data prices
+            if (crypto.symbol === "BTC" && Math.abs(crypto.quote.USD.price - 85250.75) < 0.01) return true;
+            if (crypto.symbol === "ETH" && Math.abs(crypto.quote.USD.price - 4870.32) < 0.01) return true;
+            return false;
+          });
+          
+          setIsUsingMockData(hasMockDataPattern);
         }
         return data;
       } catch (error) {
