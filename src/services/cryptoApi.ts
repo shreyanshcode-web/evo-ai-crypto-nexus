@@ -1,3 +1,4 @@
+
 import axios from "axios";
 
 interface CryptoData {
@@ -66,7 +67,24 @@ export const fetchTopCryptos = async (limit: number = 10): Promise<CryptoData[]>
     
     // Fallback to mock data when API fails
     console.log("Using mock crypto data as fallback");
-    return mockCryptoData.slice(0, limit);
+    
+    // If we're using mock data, update Bitcoin price to match CoinGecko's current value range
+    const updatedMockData = [...mockCryptoData];
+    const btcIndex = updatedMockData.findIndex(crypto => crypto.symbol === "BTC");
+    if (btcIndex !== -1) {
+      // Use a price closer to current market value (around 85k as of April 2025)
+      updatedMockData[btcIndex] = {
+        ...updatedMockData[btcIndex],
+        quote: {
+          USD: {
+            ...updatedMockData[btcIndex].quote.USD,
+            price: 85250.75
+          }
+        }
+      };
+    }
+    
+    return updatedMockData.slice(0, limit);
   }
 };
 
@@ -98,20 +116,39 @@ export const getHistoricalPriceData = async (symbol: string, days: number = 7) =
         }));
         
         console.log(`Historical data received from CoinGecko for ${symbol}`);
+        console.log("Historical data received:", formattedData);
+        
+        // Return the actual data from CoinGecko
         return formattedData;
       }
     }
     
-    // If CoinGecko fails or ID not found, fallback to mock data
+    // If CoinGecko fails or ID not found, use updated mock data for consistency
     console.log(`Using mock historical data for ${symbol}`);
-    const crypto = mockCryptoData.find(c => c.symbol === symbol);
-    const basePrice = crypto ? crypto.quote.USD.price : 100;
+    
+    // Get the current crypto price from our main data
+    let basePrice = 100;
+    // For Bitcoin specifically, use the updated price
+    if (symbol === "BTC") {
+      basePrice = 85250.75;
+    } else {
+      const crypto = mockCryptoData.find(c => c.symbol === symbol);
+      if (crypto) {
+        basePrice = crypto.quote.USD.price;
+      }
+    }
+    
     return generateMockHistoricalData(basePrice, days);
   } catch (error) {
     console.error(`Error fetching historical data for ${symbol}:`, error);
-    // Fallback to mock data
-    const crypto = mockCryptoData.find(c => c.symbol === symbol);
-    const basePrice = crypto ? crypto.quote.USD.price : 100;
+    // Fallback to mock data with updated price for BTC
+    let basePrice = 100;
+    if (symbol === "BTC") {
+      basePrice = 85250.75;
+    } else {
+      const crypto = mockCryptoData.find(c => c.symbol === symbol);
+      basePrice = crypto ? crypto.quote.USD.price : 100;
+    }
     return generateMockHistoricalData(basePrice, days);
   }
 };
@@ -178,7 +215,7 @@ const mockCryptoData: CryptoData[] = [
     slug: "bitcoin",
     quote: {
       USD: {
-        price: 66789.53,
+        price: 85250.75, // Updated to match current CoinGecko data
         volume_24h: 25463789543,
         percent_change_1h: 0.25,
         percent_change_24h: 2.56,
