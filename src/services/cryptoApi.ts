@@ -1,4 +1,3 @@
-
 import axios from "axios";
 
 interface CryptoData {
@@ -354,39 +353,4 @@ const generateMockHistoricalData = (basePrice: number, days: number) => {
   }
   
   return data;
-};
-
-// Function to get data for a specific cryptocurrency
-export const fetchCryptoDetails = async (id: number): Promise<CryptoData | null> => {
-  try {
-    console.log(`Fetching details for crypto ID ${id}...`);
-    const response = await axios.get<any>(
-      `${BASE_URL}/cryptocurrency/quotes/latest`,
-      {
-        params: {
-          id: id,
-          convert: "USD",
-        },
-        headers: {
-          "X-CMC_PRO_API_KEY": API_KEY,
-          "Accept": "application/json",
-        },
-      }
-    );
-    
-    console.log("Crypto details response:", response.data);
-    if (response.data && response.data.data && response.data.data[id]) {
-      return response.data.data[id];
-    }
-    return null;
-  } catch (error: any) {
-    console.error(`Error fetching details for crypto ID ${id}:`, error.message);
-    if (error.response) {
-      console.error("API Error Response:", error.response.data);
-      console.error("API Error Status:", error.response.status);
-    }
-    // Return mock data as fallback
-    const crypto = mockCryptoData.find(c => c.id === id);
-    return crypto || null;
-  }
 };
